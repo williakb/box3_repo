@@ -1,0 +1,20 @@
+# ESP-IDF
+build/
+.sdkconfig.old
+sdkconfig.old
+*.log
+
+# VS Code
+.vscode/
+
+# IDF internal
+.idf/
+
+# Binaries
+*.bin
+*.elf
+*.map
+
+# OS
+Thumbs.db
+.DS_Store

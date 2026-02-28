@@ -1,0 +1,16 @@
+# ESP-IDF 5.4 "manual export" (stable across VSCode crashes)
+$env:IDF_PATH="C:\Users\kirk\esp\v5.4\esp-idf"
+
+$env:IDF_PYTHON_ENV_PATH="C:\Users\kirk\.espressif\python_env\idf5.4_py3.11_env"
+$env:PATH="C:\Users\kirk\.espressif\python_env\idf5.4_py3.11_env\Scripts;$env:PATH"
+
+$env:PATH="C:\Users\kirk\.espressif\tools\idf-exe\1.0.3;$env:PATH"
+$env:PATH="C:\Users\kirk\.espressif\tools\cmake\3.30.2\bin;$env:PATH"
+
+# Ninja (latest installed)
+$ninjaDir = (Get-ChildItem "C:\Users\kirk\.espressif\tools\ninja" -Directory | Sort-Object Name -Descending | Select-Object -First 1).FullName
+$env:PATH="$ninjaDir;$env:PATH"
+
+# Xtensa toolchain (latest installed)
+$xtensaDir = (Get-ChildItem "C:\Users\kirk\.espressif\tools\xtensa-esp-elf" -Directory | Sort-Object Name -Descending | Select-Object -First 1).FullName + "\xtensa-esp-elf\bin"
+$env:PATH="$xtensaDir;$env:PATH"
