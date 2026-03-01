@@ -1,8 +1,9 @@
 #include "play_scene.h"
 #include <stdio.h>
-
+#include "audio.h"
 #include "lvgl.h"
 #include "esp_lvgl_port.h"
+#include <math.h>
 
 typedef struct {
     scene_t base;          // MUST be first
@@ -86,7 +87,18 @@ static void play_leave(scene_t* s)
 static void play_update(scene_t* s, uint32_t dt_ms, const input_state_t* in)
 {
     play_scene_t* ps = (play_scene_t*)s;
+    // audio
+        static uint32_t beep_cd_ms = 0;
+        beep_cd_ms = (beep_cd_ms > dt_ms) ? (beep_cd_ms - dt_ms) : 0;
 
+        float mag = fabsf(in->joy_x) + fabsf(in->joy_y);
+        bool moving = (mag > 0.05f);
+
+        if (moving && beep_cd_ms == 0) {
+            audio_beep(880, 30, 50);   // 880 Hz, 30 ms, volume 50%
+            beep_cd_ms = 120;          // ~8 beeps/sec max
+        }
+    // end audio
     float dt = (float)dt_ms / 1000.0f;
     ps->x += (int32_t)(in->joy_x * (float)ps->speed_px_s * dt);
     ps->y += (int32_t)(in->joy_y * (float)ps->speed_px_s * dt);

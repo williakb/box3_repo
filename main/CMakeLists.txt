@@ -4,12 +4,15 @@ idf_component_register(
         "game/game.c"
         "input/input.c"
         "scenes/play_scene.c"
+        "audio/audio.c"
     INCLUDE_DIRS
         "."
         "game"
         "input"
         "scenes"
+        "audio"
     REQUIRES
         espressif__esp-box-3
         espressif__esp_lvgl_port
+        espressif__esp_codec_dev
 )
