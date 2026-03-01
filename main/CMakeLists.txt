@@ -1,2 +1,15 @@
-idf_component_register(SRCS "main.c"
-                    INCLUDE_DIRS ".")
+idf_component_register(
+    SRCS
+        "main.c"
+        "game/game.c"
+        "input/input.c"
+        "scenes/play_scene.c"
+    INCLUDE_DIRS
+        "."
+        "game"
+        "input"
+        "scenes"
+    REQUIRES
+        espressif__esp-box-3
+        espressif__esp_lvgl_port
+)

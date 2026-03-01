@@ -1,20 +1,37 @@
-# ESP-IDF
+# ===== ESP-IDF =====
 build/
-.sdkconfig.old
 sdkconfig.old
-*.log
+sdkconfig.backup
+dependencies.lock
+managed_components/
+components/**/build/
 
-# VS Code
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+
+# VSCode
 .vscode/
+.history/
 
-# IDF internal
-.idf/
-
-# Binaries
-*.bin
-*.elf
-*.map
+# Python
+__pycache__/
+*.pyc
 
 # OS
-Thumbs.db
 .DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# ELF + binaries
+*.elf
+*.bin
+*.map
+*.obj
+*.o
+
+# IDF generated
+idf_component.yml.lock
