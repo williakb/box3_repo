@@ -4,6 +4,7 @@
 #include "lvgl.h"
 #include "esp_lvgl_port.h"
 #include <math.h>
+#include "imu.h"
 
 typedef struct {
     scene_t base;          // MUST be first
@@ -87,37 +88,63 @@ static void play_leave(scene_t* s)
 static void play_update(scene_t* s, uint32_t dt_ms, const input_state_t* in)
 {
     play_scene_t* ps = (play_scene_t*)s;
-    // audio
-        static uint32_t beep_cd_ms = 0;
-        beep_cd_ms = (beep_cd_ms > dt_ms) ? (beep_cd_ms - dt_ms) : 0;
+    const float dt = (float)dt_ms / 1000.0f;
 
-        float mag = fabsf(in->joy_x) + fabsf(in->joy_y);
-        bool moving = (mag > 0.05f);
+    // 1) Get IMU tilt from cached sample (no I2C here)
+    float tilt_x = 0.0f;
+    float tilt_y = 0.0f;
+    imu_sample_t imu = {0};
 
-        if (moving && beep_cd_ms == 0) {
-            audio_beep(880, 30, 50);   // 880 Hz, 30 ms, volume 50%
-            beep_cd_ms = 120;          // ~8 beeps/sec max
-        }
-    // end audio
-    float dt = (float)dt_ms / 1000.0f;
-    ps->x += (int32_t)(in->joy_x * (float)ps->speed_px_s * dt);
-    ps->y += (int32_t)(in->joy_y * (float)ps->speed_px_s * dt);
+    if (imu_read_cached(&imu) && imu.valid) {
+        // Axis/sign may need tuning based on orientation
+        tilt_x = imu.ax_g;
+        tilt_y = -imu.ay_g;
 
-    // Clamp for 320x240
-    if (ps->x < 0) ps->x = 0;
-    if (ps->y < 0) ps->y = 0;
-    if (ps->x > 320 - 40) ps->x = 320 - 40;
-    if (ps->y > 240 - 40) ps->y = 240 - 40;
-
-    if (in->action_pressed) {
-        ps->x = 160;
-        ps->y = 120;
+        // Clamp tilt to [-1, 1]
+        if (tilt_x > 1.0f) tilt_x = 1.0f;
+        if (tilt_x < -1.0f) tilt_x = -1.0f;
+        if (tilt_y > 1.0f) tilt_y = 1.0f;
+        if (tilt_y < -1.0f) tilt_y = -1.0f;
     }
 
-    if (!ps->dot) return;
+    // 2) Choose input: touch wins when active, else tilt
+    float jx = (in && in->joy_active) ? in->joy_x : tilt_x;
+    float jy = (in && in->joy_active) ? in->joy_y : tilt_y;
 
-    if (lvgl_port_lock(10)) {
+    // 3) Deadzone
+    if (fabsf(jx) < 0.10f) jx = 0.0f;
+    if (fabsf(jy) < 0.10f) jy = 0.0f;
+
+    // 4) Integrate motion
+    ps->x += (int32_t)(jx * (float)ps->speed_px_s * dt);
+    ps->y += (int32_t)(jy * (float)ps->speed_px_s * dt);
+
+    // 5) Clamp to screen (adjust if your panel differs)
+    const int32_t W = 320;
+    const int32_t H = 240;
+    const int32_t DOT = 40;
+
+    if (ps->x < 0) ps->x = 0;
+    if (ps->y < 0) ps->y = 0;
+    if (ps->x > (W - DOT)) ps->x = (W - DOT);
+    if (ps->y > (H - DOT)) ps->y = (H - DOT);
+
+    // 6) Update LVGL object position
+    if (ps->dot && lvgl_port_lock(10)) {
         lv_obj_set_pos(ps->dot, ps->x, ps->y);
         lvgl_port_unlock();
+    }
+
+    // 7) Optional: shake/spin beep with cooldown
+    static uint32_t beep_cd_ms = 0;
+    if (beep_cd_ms > dt_ms) beep_cd_ms -= dt_ms;
+    else beep_cd_ms = 0;
+
+    if (imu.valid) {
+        float spin = fabsf(imu.gx_dps) + fabsf(imu.gy_dps) + fabsf(imu.gz_dps);
+        if (spin > 400.0f && beep_cd_ms == 0) {
+            audio_beep(1200, 60, 70);
+            beep_cd_ms = 300; // ms
+        }
     }
 }

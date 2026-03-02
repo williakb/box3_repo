@@ -1,26 +1,40 @@
+#include <stdio.h>
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
 #include "bsp/esp-box-3.h"
 
-#include "scene.h"   // provides game_start()
+#include "game.h"
 #include "audio.h"
+#include "imu.h"
+
+static void imu_task(void *arg);
 
 void app_main(void)
 {
-    // Start display + LVGL port task
     bsp_display_start();
+    bsp_display_brightness_set(100);
 
-    // Force backlight on (BSP API)
-    bsp_display_brightness_set(100);   // 0..100
+    audio_init();
+    audio_beep(880, 100, 90);
 
-    audio_init();          // <--- start audio
-audio_beep(880, 100, 90);
-    // Start game loop task (scene setup happens inside game task)
+    imu_init();
+
+    xTaskCreatePinnedToCore(imu_task, "imu_task", 4096, NULL, 5, NULL, 1);
+
     game_start();
 
-    // Keep main task alive
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
+
+static void imu_task(void *arg)
+{
+    (void)arg;
+    while (1) {
+        imu_poll_once();
+        vTaskDelay(pdMS_TO_TICKS(10));   // 100 Hz poll
     }
 }
